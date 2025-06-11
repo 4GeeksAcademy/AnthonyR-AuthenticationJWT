@@ -6,7 +6,8 @@ from api.models import db, User
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
-
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import select, or_, and_
 
 api = Blueprint('api', __name__)
 
@@ -22,3 +23,58 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+
+@api.route("/signup", methods=["POST"])
+def signup():
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "No data provided"}), 400
+    
+    email = data.get("email").lower()
+    username = data.get("username").lower()
+    hashed_password = generate_password_hash(data["password"])
+    is_active = data.get("is_active", True)
+
+    existing_user = db.session.execute(select(User).where(
+        or_(User.username == username, User.email == email))).scalars().all()
+    if existing_user:
+        return jsonify({"msg": "A user with this username or email already exists"}), 409
+    
+    new_user = User(
+        email = email,
+        username = username,
+        password = hashed_password,
+        is_active = is_active
+    )
+
+    db.session.add(new_user)
+    try:
+        db.session.commit()
+        return jsonify({"msg": "User created",
+                        "New user": new_user.serialize()}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
+    
+
+@api.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "No data provided"}), 400
+    
+    user = db.session.execute(select(User).where(User.email == data["email"].lower())).scalar_one_or_none()
+    if not user:
+        return jsonify({"msg": "incorrect or unregistered email"}), 404
+    
+    if not check_password_hash(user.password, data["password"]):
+        return jsonify({"msg": "Incorrect password"}), 400
+    
+    try:
+        access_token = create_access_token(identity=user.id)
+        return jsonify({"msg": "logged in successfully",
+                        "token": access_token}), 200
+    except Exception as e:
+        return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
+
