@@ -31,6 +31,10 @@ def signup():
     if not data:
         return jsonify({"msg": "No data provided"}), 400
     
+    required_fields = ["email", "username", "password"]
+    if not all(field in data and data[field] for field in required_fields):
+        return jsonify({"msg": "Missing required fields"}), 400
+        
     email = data.get("email").lower()
     username = data.get("username").lower()
     hashed_password = generate_password_hash(data["password"])
@@ -74,7 +78,8 @@ def login():
     try:
         access_token = create_access_token(identity=user.id)
         return jsonify({"msg": "logged in successfully",
-                        "token": access_token}), 200
+                        "token": access_token,
+                        "user": user.serialize()}), 200
     except Exception as e:
         return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
 
