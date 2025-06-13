@@ -76,7 +76,7 @@ def login():
         return jsonify({"msg": "Incorrect password"}), 400
     
     try:
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
         return jsonify({"msg": "logged in successfully",
                         "token": access_token,
                         "user": user.serialize()}), 200
