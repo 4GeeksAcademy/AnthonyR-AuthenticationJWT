@@ -1,6 +1,15 @@
 import { Link } from "react-router-dom";
+import useGlobalReducer from "../hooks/useGlobalReducer";
+import { useNavigate } from "react-router-dom";
 
 export const Navbar = () => {
+
+	const { store, dispatch } = useGlobalReducer();
+	const navigate = useNavigate();
+	const handleLogout = () => {
+		dispatch({ type: "logout" });
+		navigate("/login");
+	};
 
 	return (
 		<nav className="navbar navbar-light bg-light mb-5">
@@ -12,6 +21,7 @@ export const Navbar = () => {
 					<Link to="/login">
 						<button className="btn btn-primary">Login</button>
 					</Link>
+					<button className="btn btn-primary ms-2" onClick={handleLogout}>Logout</button>
 				</div>
 			</div>
 		</nav>
