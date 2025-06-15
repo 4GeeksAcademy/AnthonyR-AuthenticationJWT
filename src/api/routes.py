@@ -30,11 +30,11 @@ def signup():
     data = request.get_json()
     if not data:
         return jsonify({"msg": "No data provided"}), 400
-    
+
     required_fields = ["email", "username", "password"]
     if not all(field in data and data[field] for field in required_fields):
         return jsonify({"msg": "Missing required fields"}), 400
-        
+
     email = data.get("email").lower()
     username = data.get("username").lower()
     hashed_password = generate_password_hash(data["password"])
@@ -44,12 +44,12 @@ def signup():
         or_(User.username == username, User.email == email))).scalars().all()
     if existing_user:
         return jsonify({"msg": "A user with this username or email already exists"}), 409
-    
+
     new_user = User(
-        email = email,
-        username = username,
-        password = hashed_password,
-        is_active = is_active
+        email=email,
+        username=username,
+        password=hashed_password,
+        is_active=is_active
     )
 
     db.session.add(new_user)
@@ -60,21 +60,22 @@ def signup():
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
-    
+
 
 @api.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
     if not data:
         return jsonify({"msg": "No data provided"}), 400
-    
-    user = db.session.execute(select(User).where(User.email == data["email"].lower())).scalar_one_or_none()
+
+    user = db.session.execute(select(User).where(
+        User.email == data["email"].lower())).scalar_one_or_none()
     if not user:
         return jsonify({"msg": "incorrect or unregistered email"}), 404
-    
+
     if not check_password_hash(user.password, data["password"]):
         return jsonify({"msg": "Incorrect password"}), 400
-    
+
     try:
         access_token = create_access_token(identity=str(user.id))
         return jsonify({"msg": "logged in successfully",
@@ -83,3 +84,14 @@ def login():
     except Exception as e:
         return jsonify({"msg": "Internal Server Error", "error": str(e)}), 500
 
+
+@api.route("/users", methods=["GET"])
+@jwt_required()
+def get_all_users():
+
+    users = db.session.execute(select(User)).scalars().all()
+    if not users:
+        return jsonify({"msg": "No users found"}), 404
+    serialized_users = [user.serialize() for user in users]
+
+    return jsonify(serialized_users), 200

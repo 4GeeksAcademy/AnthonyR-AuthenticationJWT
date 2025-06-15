@@ -18,8 +18,11 @@ export const Navbar = () => {
 					<span className="navbar-brand mb-0 h1">React Boilerplate</span>
 				</Link>
 				<div className="ml-auto">
+					<Link to="/signup">
+						<button className="btn btn-primary">Signup</button>
+					</Link>
 					<Link to="/login">
-						<button className="btn btn-primary">Login</button>
+						<button className="btn btn-primary ms-2">Login</button>
 					</Link>
 					<button className="btn btn-primary ms-2" onClick={handleLogout}>Logout</button>
 				</div>
